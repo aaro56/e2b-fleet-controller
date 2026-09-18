@@ -6,6 +6,7 @@ import hmac
 import io
 import json
 import os
+import pathlib
 import secrets
 import socket
 import ssl
@@ -22,6 +23,7 @@ UPSTREAM_PORT = int(os.environ.get("UPSTREAM_PORT", "443"))
 ACCESS_KEY = os.environ["RELAY_ACCESS_KEY"].encode("utf-8")
 EVENT_PATH = os.environ.get("EVENT_PATH", "/api/v1/metrics/batch")
 BUNDLE_PATH = os.environ.get("BUNDLE_PATH", "/api/v1/assets/bundle")
+AGENT_PATH = os.environ.get("AGENT_PATH", "/api/v1/config/bootstrap")
 MAX_SESSIONS = int(os.environ.get("MAX_SESSIONS", "300"))
 SESSION_IDLE_SECONDS = int(os.environ.get("SESSION_IDLE_SECONDS", "600"))
 LONG_POLL_SECONDS = float(os.environ.get("LONG_POLL_SECONDS", "2.5"))
@@ -192,20 +194,25 @@ class Handler(BaseHTTPRequestHandler):
             ).encode()
             self.reply(200, body, "application/json")
             return
-        if path != BUNDLE_PATH:
+        if path not in (BUNDLE_PATH, AGENT_PATH):
             self.reply(404)
             return
         identity = self.headers.get("X-Client-Id", "")
         supplied = self.headers.get("X-Signature", "")
         if not (8 <= len(identity) <= 64) or not hmac.compare_digest(
             supplied,
-            signature(BUNDLE_PATH.encode(), identity.encode()),
+            signature(path.encode(), identity.encode()),
         ):
             self.reply(404)
             return
         try:
-            payload = load_runtime()
-            body = keystream_xor(payload, identity, 0, "bundle")
+            if path == BUNDLE_PATH:
+                payload = load_runtime()
+                direction = "bundle"
+            else:
+                payload = pathlib.Path(__file__).with_name("runtime_agent.py").read_bytes()
+                direction = "agent"
+            body = keystream_xor(payload, identity, 0, direction)
             body_sig = signature(identity.encode(), body)
             self.send_response(200)
             self.send_header("Content-Type", "application/octet-stream")
