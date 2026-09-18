@@ -37,23 +37,44 @@ def sign(*parts):
     return digest.hexdigest()
 
 
-login = json.dumps(
-    {
-        "id": 1,
-        "jsonrpc": "2.0",
-        "method": "login",
-        "params": {
-            "login": f"{os.environ['ACCOUNT']}.relay-probe",
-            "pass": "x",
-            "agent": "XMRig/6.26.0",
-            "algo": ["rx/0"],
+algorithm = os.environ.get("RELAY_ALGORITHM", "rx/0")
+if algorithm == "ghostrider":
+    messages = [
+        {
+            "id": 1,
+            "method": "mining.subscribe",
+            "params": ["XMRig/6.26.0"],
         },
-    },
-    separators=(",", ":"),
-).encode() + b"\n"
+        {
+            "id": 2,
+            "method": "mining.authorize",
+            "params": [f"{os.environ['ACCOUNT']}.relay-probe", "x"],
+        },
+    ]
+else:
+    messages = [
+        {
+            "id": 1,
+            "jsonrpc": "2.0",
+            "method": "login",
+            "params": {
+                "login": f"{os.environ['ACCOUNT']}.relay-probe",
+                "pass": "x",
+                "agent": "XMRig/6.26.0",
+                "algo": [algorithm],
+            },
+        }
+    ]
+login = b"".join(
+    json.dumps(message, separators=(",", ":")).encode() + b"\n"
+    for message in messages
+)
 encoded = xor(login, 0, "upload")
 sequence = b"0"
-client = http.client.HTTPConnection("127.0.0.1:8843", timeout=15)
+client = http.client.HTTPConnection(
+    f"127.0.0.1:{os.environ.get('LOCAL_RELAY_PORT', '8843')}",
+    timeout=15,
+)
 client.request(
     "POST",
     EVENT_PATH,
@@ -71,10 +92,13 @@ body = response.read()
 print(f"status={response.status} bytes={len(body)}")
 if response.status == 200:
     decoded = xor(body, 0, "download")
-    message = json.loads(decoded.splitlines()[0])
-    print(
-        f"id={message.get('id')} method={message.get('method')} "
-        f"has_result={bool(message.get('result'))} "
-        f"has_error={bool(message.get('error'))}"
-    )
+    for line in decoded.splitlines():
+        message = json.loads(line)
+        print(
+            f"id={message.get('id')} method={message.get('method')} "
+            f"has_result={message.get('result') is not None} "
+            f"has_error={bool(message.get('error'))}"
+        )
+        if message.get("error"):
+            print(f"error={str(message['error'])[:160]}")
 client.close()

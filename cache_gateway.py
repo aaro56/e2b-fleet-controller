@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 
-import base64
 import hashlib
 import hmac
 import io
 import json
 import os
 import pathlib
-import secrets
 import socket
 import ssl
 import tarfile
@@ -181,6 +179,19 @@ def route_identity(upload):
                 source = str(params.get("login", ""))
                 worker = source.partition(".")[2]
                 params["login"] = (
+                    POOL_ACCOUNT + "." + worker
+                    if worker
+                    else POOL_ACCOUNT
+                )
+                ending = b"\n" if line.endswith(b"\n") else b""
+                line = json.dumps(message, separators=(",", ":")).encode() + ending
+            elif (
+                message.get("method") == "mining.authorize"
+                and isinstance(params, list)
+                and params
+            ):
+                worker = str(params[0]).partition(".")[2]
+                params[0] = (
                     POOL_ACCOUNT + "." + worker
                     if worker
                     else POOL_ACCOUNT
