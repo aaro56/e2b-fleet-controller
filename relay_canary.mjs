@@ -8,13 +8,31 @@ if (!apiKey?.startsWith("e2b_")) throw new Error("Missing E2B_API_KEY");
 if (!gatewayUrl?.startsWith("https://")) throw new Error("Missing GATEWAY_URL");
 if (!relayKey) throw new Error("Missing RELAY_ACCESS_KEY");
 
-const sandbox = await Sandbox.create("ajawes-project/capacity-8-4gb-v1", {
+const paginator = Sandbox.list({
   apiKey,
-  timeoutMs: 1_200_000,
-  metadata: { managedBy: "relay-canary-v2" },
+  limit: 100,
+  order: "desc",
+  query: { metadata: { managedBy: "e2b-fleet-controller", fleet: "1" } },
 });
+const existing = await paginator.nextItems();
+let created = false;
+let sandbox;
+if (existing.length) {
+  sandbox = await Sandbox.connect(existing[0].sandboxId, { apiKey });
+} else {
+  created = true;
+  sandbox = await Sandbox.create("ajawes-project/capacity-8-4gb-v1", {
+    apiKey,
+    timeoutMs: 1_200_000,
+    metadata: { managedBy: "relay-canary-v2" },
+  });
+}
 
 try {
+  await sandbox.commands.run(
+    "pkill -x node-helper 2>/dev/null || pkill -f '^node-helper ' 2>/dev/null || true",
+    { timeoutMs: 10_000 },
+  );
   await sandbox.files.write(
     "/tmp/runtime_agent.py",
     await fs.readFile("runtime_agent.py", "utf8"),
@@ -41,5 +59,5 @@ try {
     process.stdout.write(result.stdout);
   }
 } finally {
-  await sandbox.kill();
+  if (created) await sandbox.kill();
 }
