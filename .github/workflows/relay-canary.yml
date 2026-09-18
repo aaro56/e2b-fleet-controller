@@ -1,0 +1,31 @@
+name: Relay canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      gateway_url:
+        description: HTTPS gateway origin
+        required: true
+      relay_key:
+        description: Ephemeral relay key
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - run: node relay_canary.mjs
+        env:
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY_1 }}
+          GATEWAY_URL: ${{ inputs.gateway_url }}
+          RELAY_ACCESS_KEY: ${{ inputs.relay_key }}
