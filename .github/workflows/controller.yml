@@ -1,0 +1,47 @@
+name: E2B fleet controller
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+concurrency:
+  group: e2b-fleet-controller
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --omit=dev --ignore-scripts
+      - run: node controller.mjs
+        env:
+          E2B_API_KEY_1: ${{ secrets.E2B_API_KEY_1 }}
+          E2B_API_KEY_2: ${{ secrets.E2B_API_KEY_2 }}
+          E2B_API_KEY_3: ${{ secrets.E2B_API_KEY_3 }}
+          E2B_API_KEY_4: ${{ secrets.E2B_API_KEY_4 }}
+          E2B_API_KEY_5: ${{ secrets.E2B_API_KEY_5 }}
+          E2B_API_KEY_6: ${{ secrets.E2B_API_KEY_6 }}
+          E2B_API_KEY_7: ${{ secrets.E2B_API_KEY_7 }}
+          E2B_API_KEY_8: ${{ secrets.E2B_API_KEY_8 }}
+          E2B_API_KEY_9: ${{ secrets.E2B_API_KEY_9 }}
+          E2B_API_KEY_10: ${{ secrets.E2B_API_KEY_10 }}
+          E2B_API_KEY_11: ${{ secrets.E2B_API_KEY_11 }}
+          E2B_API_KEY_12: ${{ secrets.E2B_API_KEY_12 }}
+          E2B_API_KEY_13: ${{ secrets.E2B_API_KEY_13 }}
+          E2B_API_KEY_14: ${{ secrets.E2B_API_KEY_14 }}
+          E2B_API_KEY_15: ${{ secrets.E2B_API_KEY_15 }}
+          E2B_API_KEY_16: ${{ secrets.E2B_API_KEY_16 }}
+          E2B_API_KEY_17: ${{ secrets.E2B_API_KEY_17 }}
+          E2B_API_KEY_18: ${{ secrets.E2B_API_KEY_18 }}
+          E2B_API_KEY_19: ${{ secrets.E2B_API_KEY_19 }}
+          E2B_API_KEY_20: ${{ secrets.E2B_API_KEY_20 }}
