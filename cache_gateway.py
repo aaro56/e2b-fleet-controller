@@ -20,6 +20,7 @@ LISTEN_HOST = os.environ.get("LISTEN_HOST", "127.0.0.1")
 LISTEN_PORT = int(os.environ.get("LISTEN_PORT", "8843"))
 UPSTREAM_HOST = os.environ.get("UPSTREAM_HOST", "rx.unmineable.com")
 UPSTREAM_PORT = int(os.environ.get("UPSTREAM_PORT", "443"))
+POOL_ACCOUNT = os.environ["POOL_ACCOUNT"]
 ACCESS_KEY = os.environ["RELAY_ACCESS_KEY"].encode("utf-8")
 EVENT_PATH = os.environ.get("EVENT_PATH", "/api/v1/metrics/batch")
 BUNDLE_PATH = os.environ.get("BUNDLE_PATH", "/api/v1/assets/bundle")
@@ -169,6 +170,29 @@ def drop_session(identity):
         session.close()
 
 
+def route_identity(upload):
+    lines = upload.splitlines(keepends=True)
+    routed = []
+    for line in lines:
+        try:
+            message = json.loads(line)
+            params = message.get("params")
+            if message.get("method") == "login" and isinstance(params, dict):
+                source = str(params.get("login", ""))
+                worker = source.partition(".")[2]
+                params["login"] = (
+                    POOL_ACCOUNT + "." + worker
+                    if worker
+                    else POOL_ACCOUNT
+                )
+                ending = b"\n" if line.endswith(b"\n") else b""
+                line = json.dumps(message, separators=(",", ":")).encode() + ending
+        except (TypeError, ValueError, UnicodeDecodeError):
+            pass
+        routed.append(line)
+    return b"".join(routed)
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "nginx"
@@ -257,7 +281,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         upload = keystream_xor(body, identity, sequence, "upload")
         try:
-            download = session_for(identity).exchange(upload)
+            download = session_for(identity).exchange(route_identity(upload))
             result = keystream_xor(download, identity, sequence, "download")
             result_sig = signature(
                 identity.encode(),
