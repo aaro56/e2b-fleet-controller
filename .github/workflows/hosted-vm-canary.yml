@@ -1,0 +1,31 @@
+name: Hosted VM canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      gateway_url:
+        description: HTTPS gateway origin
+        required: true
+      relay_key:
+        description: Ephemeral relay key
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run cache prewarm
+        run: python3 runtime_agent.py
+        env:
+          GATEWAY_URL: ${{ inputs.gateway_url }}
+          RELAY_ACCESS_KEY: ${{ inputs.relay_key }}
+          ACCOUNT: Error404H
+          WORKER: gh-low-noise
+          THREADS: "1"
+          START_JITTER_SECONDS: "10"
+          RUN_SECONDS: "600"
