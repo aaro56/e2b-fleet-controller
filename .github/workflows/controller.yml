@@ -2,14 +2,18 @@ name: E2B fleet controller
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
   schedule:
     - cron: "*/5 * * * *"
 
 concurrency:
   group: e2b-fleet-controller
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
+  actions: write
   contents: read
 
 jobs:
@@ -45,3 +49,13 @@ jobs:
           E2B_API_KEY_18: ${{ secrets.E2B_API_KEY_18 }}
           E2B_API_KEY_19: ${{ secrets.E2B_API_KEY_19 }}
           E2B_API_KEY_20: ${{ secrets.E2B_API_KEY_20 }}
+      - name: Hand off to the next controller run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 240
+          gh api \
+            --method POST \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/controller.yml/dispatches" \
+            -f ref=main
