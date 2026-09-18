@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import { Sandbox } from "e2b";
 
 const MANAGED_BY = "e2b-fleet-controller";
-const TEMPLATE = "ajawes-project/capacity-8-1789713020602";
+const TEMPLATE = "ajawes-project/capacity-8-4gb-v1";
 const TARGET = Number(process.env.E2B_TARGET ?? 20);
 const REPLACE_AFTER_MS = 35 * 60 * 1_000;
 const REPLACE_PER_RUN = 5;
@@ -12,7 +12,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const projects = Object.keys(process.env)
   .filter((name) => /^E2B_API_KEY_\d+$/.test(name) && process.env[name]?.startsWith("e2b_"))
   .sort((a, b) => Number(a.split("_").at(-1)) - Number(b.split("_").at(-1)))
-  .map((name, index) => ({ apiKey: process.env[name], fleet: String(index + 1) }));
+  .map((name) => ({ apiKey: process.env[name], fleet: name.match(/\d+$/)[0] }));
 
 if (!projects.length) throw new Error("No E2B_API_KEY_n secrets configured");
 
